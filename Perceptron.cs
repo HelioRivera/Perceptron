@@ -1,48 +1,49 @@
-﻿using System;
+﻿using Perceptron;
+using System;
 
 namespace PerceptronSimple
 {
     internal class Perceptron
     {
-        double P0;
-        double P1;
-        double U;
-        Random azar;
-
-        //Tabla de verdad AND. estos valores corresponden al conjunto de entrenamiento de los datos de entrada y sus
-        //respectivas salidas esperadas para cada uno de ellos 
-        readonly int[,] entradas = { { 1, 1 }, { 1, 0 }, { 0, 1 }, { 0, 0 } };
-        readonly int[] salidasesperadasAND = { 1, 0, 0, 0 };
-        readonly int[] salidasesperadasOR = { 0, 1, 1, 1 };
-
-        int iteracion;
-
-        int funcionAaprender;
-
+        private double P0;// un parametro ajustable del perceptron
+        private double P1;// otro parametro ajustable del perceptron
+        private double U; // bias del perceptron
+        private Random azar; //para inicializar los parametros ajustables de la red
+        private DatosTrain datos;
+        private int iteracion;
+        private int funcion_A_aprender;
         private bool entrenada;
+        private int[,] entradas;
+        private int[] tablaAND;
+        private int[] tablaOR;
 
-        internal void inizializar(int tipo)
+        public Perceptron(int tipo)
         {
-            //Único generador de números aleatorios
+            datos = new DatosTrain();
             azar = new Random(10);
-
-            funcionAaprender = tipo;
-            //Cuenta el número de iteraciones
-            iteracion = 0;
-
-            // define si la red ha sido entrenada
-            entrenada = false;
+            entrenada = false;// define si la red ha sido entrenada
+            funcion_A_aprender = tipo; // determina si el perceptron aprendera AND o OR
+            iteracion = 0;//Cuenta el número de iteraciones
 
             //Inicializa los pesos al azar
             P0 = azar.NextDouble();
             P1 = azar.NextDouble();
             U = azar.NextDouble();
+
+            //recuperacion del data set de entrenamiento
+            entradas = datos.GetEntradas(); 
+            tablaAND = datos.GetSalidsEsperadasAnd();
+            tablaOR = datos.GetSalidsEsperadasOr();
         }
-
+        
         //Muestra que el perceptrón simple aprendió.
-        internal void comprobarAprendizaje()
+        internal void MostrarValoresAprendidos(int funcionaprendida)
         {
-
+            Console.WriteLine("_______________________________________________________________");
+            if (funcionaprendida == 1)
+                Console.WriteLine("Probando el  perceptron que aprendio la funcion AND :");
+            else
+                Console.WriteLine("Probando el  perceptron que aprendio la funcion OR :");
             for (int cont = 0; cont <= 3; cont++)
             {
                 double operacion = entradas[cont, 0] * P0 + entradas[cont, 1] * P1 + U;
@@ -50,31 +51,35 @@ namespace PerceptronSimple
                 int salidaEntera = funcionActivacion(operacion);
 
                 //Imprime
-                if (funcionAaprender == 1)
+                if (funcion_A_aprender == 1)
                 {
                     Console.WriteLine("Entradas: " + entradas[cont, 0].ToString() + " y " + entradas[cont, 1].ToString() + " = " +
-                    salidasesperadasAND[cont].ToString() + " perceptron: " + salidaEntera.ToString());
+                    tablaAND[cont].ToString() + " perceptron: " + salidaEntera.ToString());
                 }
-                if (funcionAaprender == 2)
+                if (funcion_A_aprender == 2)
                 {
                     Console.WriteLine("Entradas: " + entradas[cont, 0].ToString() + " y " + entradas[cont, 1].ToString() + " = " +
-                   salidasesperadasOR[cont].ToString() + " perceptron: " + salidaEntera.ToString());
+                   tablaOR[cont].ToString() + " perceptron: " + salidaEntera.ToString());
                 }
 
 
             }
+            Console.WriteLine("_______________________________________________________________");
+            Console.WriteLine("Valores para los parámetros ajustables del perceptron");
             Console.WriteLine("Pesos encontrados P0= " + P0.ToString() + " P1= " + P1.ToString() + " U= " + U.ToString());
             Console.WriteLine("Iteraciones requeridas: " + iteracion.ToString());
+            Console.WriteLine("_______________________________________________________________");
             Console.WriteLine("Presione ENTER para continuar... " );
             Console.ReadKey();
         }
 
 
-        internal void entrenar()
+        internal bool entrenar()
         {
-            
-            //Variable que mantiene el proceso activo de buscar los pesos
-            bool proceso = true;
+            Console.WriteLine("_______________________________________________________________");
+            Console.WriteLine("Iniciando el proceso de entrenamiento...");
+
+            bool proceso = true;//Variable que mantiene el proceso activo de busqueda de los pesos
 
             //Hasta que aprenda la tabla AND
             while (proceso)
@@ -84,20 +89,20 @@ namespace PerceptronSimple
                 //Optimista, en esta iteración se encuentra los pesos
                 proceso = false;
 
-                //Va por todas las reglas de la tabla AND
-                for (int cont = 0; cont <= 3; cont++)
+                for (int cont = 0; cont <= 3; cont++)  //Va por todas las reglas de la tabla AND
                 {
-                    //Calcula el valor de entrada a la función
-                    double operacion = entradas[cont, 0] * P0 + entradas[cont, 1] * P1 + U;
+                    //Calcula la preactivacion de la neurona en la teoria esto es conocido como feedforward pass
+                    double salidacalculada = entradas[cont, 0] * P0 + entradas[cont, 1] * P1 + U;
 
                     //La función de activación
-                    int target = funcionActivacion(operacion);
+                    int target = funcionActivacion(salidacalculada);
 
-                    //Si la salida no coincide con lo esperado, cambia los pesos al azar
-                    //aqui es donde se produce el ajuste de los pesos
-                    if(funcionAaprender == 1)
+                    //Si la salida calculada no coincide con la salida esperada proporcionada por el data set de entrenamiento
+                    //proporcionado por las tablas de aprendizaje , cambia los pesos al azar
+                    //aqui es donde se produce el ajuste de los pesos. En la teoria esto es conocido como backforward pass
+                    if(funcion_A_aprender == 1)
                     {
-                        if (target != salidasesperadasAND[cont])
+                        if (target != tablaAND[cont]) 
                         {
                             P0 = azar.NextDouble();
                             P1 = azar.NextDouble();
@@ -106,9 +111,9 @@ namespace PerceptronSimple
                         }
 
                     }
-                    if (funcionAaprender == 2)
+                    if (funcion_A_aprender == 2)
                     {
-                        if (target != salidasesperadasOR[cont])
+                        if (target != tablaOR[cont])
                         {
                             P0 = azar.NextDouble();
                             P1 = azar.NextDouble();
@@ -121,23 +126,18 @@ namespace PerceptronSimple
 
                 }
             }
+            Console.WriteLine("Proceso de entrenamiento finalizado.");
+            Console.WriteLine("_______________________________________________________________");
             entrenada = true;
+            return entrenada;
         }
-
-        private int  funcionActivacion(double operacion)
+        
+        private int funcionActivacion(double operacion)
         {
             if (operacion > 0.7)
                 return  1;
             else
                 return  0;
-        }
-
-        internal bool EsEntrenado()
-        {
-            if (entrenada)
-                return true;
-            else
-                return false;
         }
 
         internal void imput(int v1, int v2)
